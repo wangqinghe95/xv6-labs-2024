@@ -1,0 +1,20 @@
+# Answer to question
+
+Q1: Looking at the backtrace output, which function called syscall?
+A: kernel/trap.c:67 call syscall
+
+Q2. What is the value of p->trapframe->a7 and what does that value represent? (Hint: look user/initcode.S, the first user program xv6 starts.)
+A: 7, and that value represent that the regisger restore a symbol for SYS_exec
+
+
+Q3. What was the previous mode that the CPU was in?
+A: user mode. 0x200000022 = 0010 0000 0000 0000 0000 0000 0010 0010 中，从左向右，第 1 位 是 1， 表示之前是 user mode
+
+Q4. Write down the assembly instruction the kernel is panicing at. Which register corresponds to the variable num?
+A: panic("kerneltrap"); a3 register restore variable num
+
+Q5. Why does the kernel crash? Hint: look at figure 3-3 in the text; is address 0 mapped in the kernel address space? Is that confirmed by the value in scause above?
+A: Address 0 is a protected address that can't visit by user mode.
+
+Q6. What is the name of the process that was running when the kernel paniced? What is its process id (pid)?
+A: initcode process, and this process's pid is 1
