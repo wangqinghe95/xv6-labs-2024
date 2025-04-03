@@ -153,7 +153,7 @@ kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
 
 pte_t* superwalk(pagetable_t pagetable, uint64 va, int alloc)
 {
-  if(va > MAXVA) panic("superwalk");
+  if(va >= MAXVA) panic("superwalk");
 
   pte_t* pte = &pagetable[PX(2,va)];
   if(*pte & PTE_V) {
@@ -183,7 +183,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   pte_t *pte = (pte_t *)0;
 
   uint64 pgsize;
-  if(pa > SUPERBASE) pgsize = SUPERPGSIZE;
+  if(pa >= SUPERBASE) pgsize = SUPERPGSIZE;
   else pgsize = PGSIZE;
 
   if((va % pgsize) != 0)
@@ -238,13 +238,13 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("uvmunmap: not a leaf");
 
     uint64 pa = PTE2PA(*pte);
-    if( pa > SUPERBASE) {
+    if( pa >= SUPERBASE) {
       a += SUPERPGSIZE;
       a -= sz;
     }
     if(do_free){
       uint64 pa = PTE2PA(*pte);
-      if(pa > SUPERBASE) superfree((void*)pa);
+      if(pa >= SUPERBASE) superfree((void*)pa);
       kfree((void*)pa);
     }
     *pte = 0;
@@ -312,7 +312,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
     }
   }
 
-  for(; a += SUPERPGSIZE < newsz; a += sz) {
+  for(; a + SUPERPGSIZE < newsz; a += sz) {
     sz = SUPERPGSIZE;
     mem = superalloc();
     if(0 == mem) {
