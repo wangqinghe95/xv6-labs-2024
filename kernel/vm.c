@@ -245,7 +245,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     if(do_free){
       uint64 pa = PTE2PA(*pte);
       if(pa >= SUPERBASE) superfree((void*)pa);
-      kfree((void*)pa);
+      else kfree((void*)pa);
     }
     *pte = 0;
   }
@@ -302,7 +302,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
       uvmdealloc(pagetable, a , oldsz);
       return 0;
     }
-#ifdef LAB_SYSCALL
+#ifndef LAB_SYSCALL
     memset(mem, 0, sz);
 #endif
     if(mappages(pagetable, a, sz, (uint64)mem, PTE_R|PTE_U|xperm) != 0) {
