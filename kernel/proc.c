@@ -26,6 +26,33 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
+struct {
+  struct vma _vma[NVMA];
+  struct vma* free_vma_list;
+  struct spinlock lock;
+}vma;
+
+struct vma*
+allocvma(void)
+{
+  struct vma* v;
+
+  acquire(&vma.lock);
+
+  v = vma.free_vma_list;
+  if(v) vma.free_vma_list = v->next;
+  release(&vma.lock);
+  return v;
+}
+
+void freevma(struct vma* v)
+{
+  acquire(&vma.lock);
+  v->next = vma.free_vma_list;
+  vma.free_vma_list = v;
+  release(&vma.lock);
+}
+
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -55,6 +82,12 @@ procinit(void)
       initlock(&p->lock, "proc");
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
+  }
+
+  initlock(&vma.lock, "vma");
+  for(int i = 0; i < NVMA; ++i) {
+    vma._vma[i].next = vma.free_vma_list;
+    vma.free_vma_list = &vma._vma[i];
   }
 }
 
@@ -156,7 +189,9 @@ static void
 freeproc(struct proc *p)
 {
   if(p->trapframe)
+  {
     kfree((void*)p->trapframe);
+  }
   p->trapframe = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
@@ -296,6 +331,27 @@ fork(void)
   }
   np->sz = p->sz;
 
+  struct vma *iter, *prev, *next;
+  for(iter = p ->vmas; iter; iter = iter->next) {
+    if(mmap(np, iter->start, iter->end - iter->start,
+        iter->prot, iter->flags, iter->file, iter->offset) < 0){
+        printf("%s: start = %ld, end = %ld\n",__func__, p->vmas->start, MAXVMEMMAP);
+
+          munmap(np, p->vmas->start, MAXVMEMMAP);
+          freeproc(np);
+          release(&np->lock);
+          return -1;
+        }
+  }
+
+  for(prev = 0, iter = np->vmas; iter; iter = next){
+    next = iter->next;
+    iter->next = prev;
+    prev = iter;
+  }
+
+  np->vmas = prev;
+
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -350,6 +406,13 @@ exit(int status)
 
   if(p == initproc)
     panic("init exiting");
+
+  if(p->vmas)
+  {
+    printf("%s: start = %ld, end = %ld\n",__func__, p->vmas->start, MAXVMEMMAP);
+    
+    munmap(p, p->vmas->start, MAXVMEMMAP);
+  }
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){

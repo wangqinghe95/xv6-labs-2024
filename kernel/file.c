@@ -180,3 +180,38 @@ filewrite(struct file *f, uint64 addr, int n)
   return ret;
 }
 
+int writeback(struct file* f, off_t off, uint64 addr, int nr_page)
+{
+  int ret = 0;
+  if(f->writable == 0 || f->type != FD_INODE) {
+    return -1;
+  }
+
+  int max = ((MAXOPBLOCKS-1-1-2)/2) * BSIZE;
+  int i = 0;
+  int n = nr_page * PGSIZE;
+  while (i < n)
+  {
+    int n1 = n - i;
+    if(n1 > max) n1 = max;
+
+    begin_op();
+    ilock(f->ip);
+
+    int r = 0;
+    if((r = writei(f->ip, 1, addr + i, off, n1)) > 0) {
+      off += r;
+    }
+    iunlock(f->ip);
+
+    end_op();
+
+    if(r != n1) break;
+    i += r;
+  }
+
+  ret = ( i == n ? n : -1);
+
+  return ret;
+}
+

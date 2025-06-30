@@ -15,6 +15,7 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "memlayout.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -464,14 +465,65 @@ sys_exec(void)
   int ret = exec(path, argv);
 
   for(i = 0; i < NELEM(argv) && argv[i] != 0; i++)
+  {
     kfree(argv[i]);
+  }
 
   return ret;
 
  bad:
   for(i = 0; i < NELEM(argv) && argv[i] != 0; i++)
+  {
     kfree(argv[i]);
+  }
   return -1;
+}
+
+uint64 sys_mmap(void)
+{
+  uint64 addr;
+  int len, prot, flags, fd, offset;
+
+  struct file* f;
+
+  argaddr(0, &addr);
+  argint(1, &len);
+  argint(2, &prot);
+  argint(3, &flags);
+  argfd(4, &fd, &f);
+  argint(5, &offset);
+
+  if(addr < 0 || len < 0 || prot < 0 || flags < 0 || fd < 0 || offset < 0) {
+    return -1;
+  }
+
+  if(!f->readable && (prot & PROT_READ) && (flags & MAP_SHARED)) {
+    return -1;
+  }
+
+  if(!f->writable && (prot & PROT_WRITE) && (flags & MAP_SHARED)) {
+    return -1;
+  }
+
+  struct proc *p = myproc();
+
+  return mmap(p, 0, len, prot, flags, f, 0);
+}
+uint64 sys_munmap(void)
+{
+  uint64 addr, start, end;
+  size_t len;
+  struct proc* p = myproc();
+
+  argaddr(0, &addr);
+  argaddr(1, &len);
+
+  if(addr % PGSIZE) return -1;
+
+  start = addr;
+  end = PGROUNDUP(addr + len);
+  printf("%s: start = %ld, end = %ld\n",__func__, start, end);
+  return munmap(p, start, end);
 }
 
 uint64

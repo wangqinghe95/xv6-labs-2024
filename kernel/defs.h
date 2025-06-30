@@ -13,6 +13,9 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#define min(a,b) ((a) < (b) ? (a) : (b))
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);
@@ -37,6 +40,7 @@ void            fileinit(void);
 int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
+int writeback(struct file* f, off_t off, uint64 addr, int nr_page);
 
 // fs.c
 void            fsinit(int);
@@ -110,6 +114,8 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+struct vma*     allocvma(void);
+void            freevma(struct vma* v);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -183,10 +189,14 @@ int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
 #if defined(LAB_PGTBL) || defined(SOL_MMAP)
 void            vmprint(pagetable_t);
+int do_mmap_page(struct vma* vma, uint64 addr, pte_t *pte);
 #endif
 #ifdef LAB_PGTBL
 pte_t*          pgpte(pagetable_t, uint64);
 #endif
+uint64 mmap(struct proc* p, uint64 addr, size_t len, int prot,
+            int flags, struct file* f, off_t offset);
+uint64 munmap(struct proc* p, uint64 start, uint64 end);
 
 // plic.c
 void            plicinit(void);
