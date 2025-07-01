@@ -490,7 +490,6 @@ int do_mmap_page(struct vma* vma, uint64 addr, pte_t *pte)
 uint64 mmap(struct proc* p, uint64 addr, size_t len, int prot,
             int flags, struct file* f, off_t offset)
 {
-  printf("%s, addr:%ld, len:%ld\n",__func__, addr, len);
   struct vma *vma;
   size_t len_aligned;
 
@@ -500,7 +499,6 @@ uint64 mmap(struct proc* p, uint64 addr, size_t len, int prot,
     return -1;
   }
 
-  printf("vma->start:%ld MAXVMEMMAP:%ld\n", vma->start,MAXVMEMMAP);
   len_aligned = PGROUNDUP(len);
   if(0 == addr){
     if(p->vmas == 0) {
@@ -533,7 +531,6 @@ uint64 mmap(struct proc* p, uint64 addr, size_t len, int prot,
   p->vmas = vma;
 
   filedup(f);
-  printf("%s end vma->start:%ld\n", __func__, vma->start);
 
   return vma->start;
 }
@@ -567,7 +564,6 @@ uint64 munmap(struct proc* p, uint64 start, uint64 end)
       }
       end_op();
     }
-    printf("%s l: %ld, (r-l)/PGSIZE:%ld\n", __func__, l, (r-l)/PGSIZE);
     uvmunmap(p->pagetable, l, (r-l)/PGSIZE, 1);
     if(l == iter->start && r == iter->end){
       fileclose(iter->file);

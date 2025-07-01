@@ -335,7 +335,6 @@ fork(void)
   for(iter = p ->vmas; iter; iter = iter->next) {
     if(mmap(np, iter->start, iter->end - iter->start,
         iter->prot, iter->flags, iter->file, iter->offset) < 0){
-        printf("%s: start = %ld, end = %ld\n",__func__, p->vmas->start, MAXVMEMMAP);
 
           munmap(np, p->vmas->start, MAXVMEMMAP);
           freeproc(np);
@@ -409,8 +408,6 @@ exit(int status)
 
   if(p->vmas)
   {
-    printf("%s: start = %ld, end = %ld\n",__func__, p->vmas->start, MAXVMEMMAP);
-    
     munmap(p, p->vmas->start, MAXVMEMMAP);
   }
 

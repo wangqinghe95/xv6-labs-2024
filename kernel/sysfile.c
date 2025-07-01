@@ -522,7 +522,6 @@ uint64 sys_munmap(void)
 
   start = addr;
   end = PGROUNDUP(addr + len);
-  printf("%s: start = %ld, end = %ld\n",__func__, start, end);
   return munmap(p, start, end);
 }
 
